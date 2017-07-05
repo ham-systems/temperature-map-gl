@@ -1,0 +1,59 @@
+<html>
+<head>
+	<title>temperature-map-js demo page</title>
+	<meta charset="UTF-8">
+	<style>
+		body { margin: 0; }
+		.tmg-point { 
+			background-color:gray;
+			color: white;
+			border-radius: 100px;
+			padding: 4px;
+			border: 1px solid white;
+			font-family: sans-serif;
+    		font-size: 15px;
+		}
+	</style>
+	<script src='temperature-map-gl.js'></script>
+	<script>
+		function run() {
+			var q = 0.25;
+			for(var i=0; i < 3;++i){
+				var image = document.getElementById("map-image"+i);
+				var temperature_map = new temperature_map_gl(image, {
+					framebuffer_factor: q,
+					show_points: i == 1,
+				});
+				var points = [];
+				var w = temperature_map.canvas.width;
+				var h = temperature_map.canvas.height;
+				var min_temp = 0;
+				var max_temp = 100;
+				for(var j=0;j<Math.pow(10,i)*5;++j){
+					var p = [w*Math.random(), h*Math.random(), (max_temp - min_temp)*Math.random() + min_temp];
+					points.push(p);
+				}
+
+				var start = performance.now();
+				temperature_map.set_points(points);
+				temperature_map.draw();
+				temperature_map.context.finish();
+				console.log(points.length+' points at q='+q+' took '+ (performance.now() - start)+' ms');
+			}
+		}
+	</script>
+</head>
+    <body onload='run()'>
+		<div class='map-container' style='display: inline-block; position:relative;'>
+        	<img id='map-image0' src='symi.png'/>
+		</div>
+
+		<div class='map-container' style='display: inline-block; position:relative; height: 870px; width: 647px'>
+			<img id='map-image1' src='symi.png'/>
+		</div>
+
+		<div class='map-container' style='display: inline-block; position:relative; height: 870px; width: 647px'>
+        	<img id='map-image2' src='symi.png'/>
+		</div>
+    </body>
+</html>
