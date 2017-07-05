@@ -27,7 +27,7 @@
 		uniform float range_factor;														\
 		uniform vec2 screen_size;														\
 		void main(void) {																\
-			vec2 x = vec2(gl_FragCoord.x/screen_size.y, gl_FragCoord.y/screen_size.y);	\
+			vec2 x = vec2(gl_FragCoord.x/screen_size.x, gl_FragCoord.y/screen_size.y);	\
 			float dist = distance(x, xi);												\
 			float wi = 1.0/pow(dist, p);												\
 			gl_FragColor = vec4(ui*wi*range_factor, wi*range_factor, 0.0, 1.0);			\
@@ -97,7 +97,7 @@
 		brightness: 0.00,
 		contrast: 6,
 		show_points: false,
-		framebuffer_factor: 0.25,
+		framebuffer_factor: 1,
 		image_zindex: 0,
 		normal_value: 25,
 		floating_point_texture: true,
