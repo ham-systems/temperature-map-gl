@@ -45,7 +45,7 @@
 		void main(void) {																															\
 			vec4 data = texture2D(computation_texture, vec2(gl_FragCoord.x/screen_size.x, 1.0-gl_FragCoord.y/screen_size.y));						\
 			float val = data.x/data.y;																												\
-			vec3 color = vec3(max((val-0.5)*2.0, 0.0), 1.0 - abs(val - 0.5), max((0.5-val)*2.0, 0.0) ) + vec3(brightness, brightness, brightness);	\
+			vec3 color = vec3(max((val-0.5)*2.0, 0.0), 1.0 - 2.0*abs(val - 0.5), max((0.5-val)*2.0, 0.0) ) + vec3(brightness, brightness, brightness);	\
 			gl_FragColor.rgb = pow(color, vec3(1.0/gamma));																							\
 			gl_FragColor.a = 1.0;																													\
 		}																																			\
@@ -89,17 +89,16 @@
 	}
 	
 	var default_options = {
-		p: 3,
+		p: 5,
 		canvas: null,
-		opacity: 0.5,
+		opacity: 0.35,
 		range_factor: 0.01,
 		gamma: 2.2,
 		brightness: 0.00,
-		contrast: 6,
+		contrast: 1,
 		show_points: false,
 		framebuffer_factor: 1,
 		image_zindex: 0,
-		normal_value: 25,
 		floating_point_texture: true,
 		point_text: function(val) {
 			var v;
@@ -130,10 +129,6 @@
 		image_element.style.zIndex = _options.image_zindex;
 
 		var canvas = _options.canvas || document.createElement('canvas');
-		canvas.height = this.image_element.clientHeight;
-		canvas.width = this.image_element.clientWidth;
-		canvas.style.height = canvas.height+'px';
-		canvas.style.width = canvas.width+'px';
 
 		canvas.style.position = 'absolute';
 		canvas.style.top = '0px';
@@ -193,9 +188,8 @@
 		this.computation_framebuffer_width = 0;
 		this.computation_framebuffer_height = 0;
 		
-		
-		this.init_buffers();
 		this.init_shaders();
+		this.resize(this.image_element.clientWidth, this.image_element.clientHeight);
 	}
 
 	temperature_map_gl.prototype.update_options = function(options){
@@ -209,18 +203,22 @@
 		this.draw();
 	}
 
-	temperature_map_gl.prototype.set_points = function(points){
+	temperature_map_gl.prototype.set_points = function(points, low_val, high_val, normal_val){
 		this.points = points;
 		if(points.length){
 			var translated_points = [];
-			var min = points[0][2];
-			var max = points[0][2];
+			var min = (typeof low_val !== 'undefined')?Math.min(points[0][2], low_val):points[0][2];
+			var max = (typeof high_val !== 'undefined')?Math.max(points[0][2], high_val):points[0][2];
+			var avg = (typeof normal_val !== 'undefined')?normal_val:0;
 			for(var i=1;i < points.length; ++i){
 				var p = [points[i][0], points[i][1], points[i][2]];
 				if(p[2] > max)
 					max = p[2];
 				if(p[2] < min)
 					min = p[2];
+
+				if(typeof normal_val === 'undefined')
+					avg += p[2]/points.length;
 			}	
 			var d = max > min?max - min:1;
 
@@ -230,8 +228,12 @@
 				var p = [points[i][0], points[i][1], points[i][2]];
 				p[0] = p[0]/w;
 				p[1] = p[1]/h;
-				p[2] = (p[2] - min)/d;
-				
+
+				if(p[2] > avg)
+					p[2] = (max == avg)?1.0:0.5*(p[2] - avg)/(max - avg) + 0.5;
+				else
+					p[2] = (min == avg)?0.5:-0.5*(avg - p[2])/(avg - min) + 0.5;
+				p[2] = Math.max(Math.min(p[2], 1.0), 0.0);
 				
 				if(p[2] > max)
 					max = p[2];
@@ -383,6 +385,16 @@
 			this.canvas.parentNode.insertBefore(dot, this.canvas.nextSibling);
 		}
 	}
+
+
+	temperature_map_gl.prototype.resize = function(width, height){
+		this.canvas.height = height;
+		this.canvas.width = width;
+		this.canvas.style.height = this.canvas.height+'px';
+		this.canvas.style.width = this.canvas.width+'px';
+		this.init_buffers();
+	}
+
 
 	temperature_map_gl.prototype.destroy = function(){
 		if(this.own_canvas)
