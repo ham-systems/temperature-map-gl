@@ -69,7 +69,8 @@ temperature_map_gl(image_element[, options]);
 temperature_map.update_options(options);
 
 //sets points in the format mentioned above
-temperature_map.set_points(points);
+//the optional arguments determine what is min = blue, what is max = red, normal = green
+temperature_map.set_points(points[, min, max, normal_val]);
 
 //performs a calculation and draw given the points set
 temperature_map.draw();
@@ -78,10 +79,13 @@ temperature_map.draw();
 temperature_map.draw_points()
 
 //explicitly hide markers
-temperature_map.hide_points()
+temperature_map.hide_points();
+
+//resize canvas
+temperature_map.resize(width, height);
 
 //removes all created elements
-temperature_map.destroy()
+temperature_map.destroy();
 ```
 
 ### Examples
