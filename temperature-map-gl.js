@@ -40,12 +40,10 @@
 		uniform sampler2D computation_texture;																										\
 		uniform vec2 screen_size;																													\
 		uniform float gamma;																														\
-		uniform float brightness;																													\
-		uniform float contrast;																														\
 		void main(void) {																															\
 			vec4 data = texture2D(computation_texture, vec2(gl_FragCoord.x/screen_size.x, 1.0-gl_FragCoord.y/screen_size.y));						\
 			float val = data.x/data.y;																												\
-			vec3 color = vec3(max((val-0.5)*2.0, 0.0), 1.0 - 2.0*abs(val - 0.5), max((0.5-val)*2.0, 0.0) ) + vec3(brightness, brightness, brightness);	\
+			vec3 color = vec3(max((val-0.5)*2.0, 0.0), 1.0 - 2.0*abs(val - 0.5), max((0.5-val)*2.0, 0.0));											\
 			gl_FragColor.rgb = pow(color, vec3(1.0/gamma));																							\
 			gl_FragColor.a = 1.0;																													\
 		}																																			\
@@ -92,14 +90,11 @@
 		p: 5,
 		canvas: null,
 		opacity: 0.35,
-		range_factor: 0.01,
+		range_factor: 0.00390625,
 		gamma: 2.2,
-		brightness: 0.00,
-		contrast: 1,
 		show_points: false,
 		framebuffer_factor: 1,
 		image_zindex: 0,
-		floating_point_texture: true,
 		point_text: function(val) {
 			var v;
 			if(val < 1)
@@ -146,10 +141,10 @@
 		this.context = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
 		if(!this.context)
 			console.log('Your browser does not support webgl');
-		if(!this.context.getExtension('OES_texture_float')){
+		
+		if(!this.context || !this.context.getExtension('OES_texture_float')){
 			console.log('Your browser does not support float textures');
-			_options.floating_point_texture = false;
-			_options.range_factor = 0.01;
+			this.context = null;
 		}
 
 		this.points = [];
@@ -169,22 +164,16 @@
 		this.p_uniform = null;
 		this.computation_texture_uniform = null;
 		this.gamma_uniform = null;
-		this.brightness_uniform = null;
-		this.contrast_uniform = null;
-
 
 		this.point_text = _options.point_text;
 		this.p = _options.p;
 		this.range_factor = _options.range_factor;
 		this.gamma = _options.gamma;
-		this.brightness = _options.brightness;
-		this.contrast = _options.contrast;
 
 		this.show_points = _options.show_points;
 		this.unit = _options.unit;
 
 		this.framebuffer_factor = _options.framebuffer_factor;
-		this.floating_point_texture = _options.floating_point_texture;
 		this.computation_framebuffer_width = 0;
 		this.computation_framebuffer_height = 0;
 		
@@ -196,15 +185,22 @@
 		if(options.p) this.p = options.p;
 		if(options.range_factor) this.range_factor = options.range_factor;
 		if(options.gamma) this.gamma = options.gamma;
-		if(options.brightness) this.brightness = options.brightness;
-		if(options.contrast) this.contrast = options.contrast;
 		if(options.show_points) this.show_points = options.show_points;
 
 		this.draw();
 	}
 
+	temperature_map_gl.is_supported = function(){
+		var canvas = document.createElement('canvas');
+		var context = canvas.getContext('webgl');
+		return canvas && context && context.getExtension('OES_texture_float');
+	}
+
 	temperature_map_gl.prototype.set_points = function(points, low_val, high_val, normal_val){
 		this.points = points;
+		if(!this.context)
+			return;
+
 		if(points.length){
 			var translated_points = [];
 			var min = (typeof low_val !== 'undefined')?Math.min(points[0][2], low_val):points[0][2];
@@ -248,6 +244,9 @@
 
 
 	temperature_map_gl.prototype.init_buffers = function(){
+		if(!this.context)
+			return;
+
 		var gl = this.context;
 		this.square_vertices_buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.square_vertices_buffer);
@@ -271,7 +270,7 @@
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.computation_framebuffer_width, this.computation_framebuffer_height, 0, gl.RGBA, this.floating_point_texture?gl.FLOAT:gl.UNSIGNED_BYTE, null);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.computation_framebuffer_width, this.computation_framebuffer_height, 0, gl.RGBA, gl.FLOAT, null);
 		
 		this.computation_framebuffer = gl.createFramebuffer();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.computation_framebuffer);
@@ -284,6 +283,9 @@
 
 
 	temperature_map_gl.prototype.init_shaders = function(){
+		if(!this.context)
+			return;
+
 		var gl = this.context;
 		var vertex_shader = get_shader(gl, vertex_shader_source, 'vertex');
 		var computation_fragment_shader = get_shader(gl, computation_fragment_shader_source, 'fragment');
@@ -302,7 +304,6 @@
 		this.d_screen_size_uniform = gl.getUniformLocation(this.draw_program, "screen_size");
 		this.computation_texture_uniform = gl.getUniformLocation(this.draw_program, 'computation_texture');
 		this.gamma_uniform = gl.getUniformLocation(this.draw_program, 'gamma');
-		this.brightness_uniform = gl.getUniformLocation(this.draw_program, 'brightness');
 	}
 
 
@@ -348,8 +349,6 @@
 		gl.bindTexture(gl.TEXTURE_2D, this.computation_texture);
 		gl.uniform1i(this.computation_texture_uniform, 0);
 		gl.uniform1f(this.gamma_uniform, this.gamma);
-		gl.uniform1f(this.brightness_uniform, this.brightness);
-		gl.uniform1f(this.contrast_uniform, this.contrast);
 		gl.uniform2f(this.d_screen_size_uniform, this.canvas.width, this.canvas.height);
 		gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.square_vertices_buffer);

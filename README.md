@@ -38,14 +38,12 @@ var temperature_map = new temperature_map_gl(image), {
 	p: 3, // used in calculating the IDW values, see wikipedia article mentioned at the bottom of this
 	canvas: null, //use this canvas element and don't create a new one
 	opacity: 0.5,// opacity of the canvas
-	range_factor: 0.01,//used in scaling the values so they don't clip when storing them as channels of the framebuffer texture
+	range_factor: 0.00390625,//used in scaling the values so they don't clip when storing them as channels of the framebuffer texture
 	gamma: 2.2,//used in altering the color during draw pass
 	brightness: 0.00,//used in brightening the color during draw pass
-	contrast: 6,//used in altering the color during draw pass
 	show_points: false,//add 
-	framebuffer_factor: 0.25,//the ratio of the dimensions of the calculation framebuffer in relation to the actual canvas
+	framebuffer_factor: 1.0,//the ratio of the dimensions of the calculation framebuffer in relation to the actual canvas
 	image_zindex: 0,//style z-index given to the image
-	floating_point_texture: true,//use floating point texture for calculation, if not supported this automatically becomes false, but the results are incorrect...
 	point_text: function(val) {//used when the show_points is true of the draw_points() method is called explicitly. It returns the text on the points shown for given value val
 		var v;
 		if(val < 1)
@@ -86,12 +84,14 @@ temperature_map.resize(width, height);
 
 //removes all created elements
 temperature_map.destroy();
+
+//returns if all the requirements are met (webgl and OES_texture_float), if this returns false, draws are no-ops
+is_supported();
 ```
 
 ### Examples
 
-
-You can also check it out live at [chpetrou.net](http://chpetrou.net/temperature-map-js/)
+You can check it out live at [chpetrou.net](http://chpetrou.net/temperature-map-js/)
 
 ### Technical explanation
 
