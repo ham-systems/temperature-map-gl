@@ -106,3 +106,5 @@ For every point, we perform a render pass to a texture. Using IDW, we calculate 
 At last, we perform a last pass where we get the IDW value by reading the calculation texture and do a r/g at every fragment. We then use this value to determine the color of the fragment. 
 
 More on the technical side on [my website](http://chpetrou.net/en/temperature-map-gl-js-minimalist-pure-javascript-heat-map-library-using-webgl-shaders/)
+
+Used on [HAM Systems IoT platform](https://hamsystems.eu) for heatmaps over floorplans for visualization
